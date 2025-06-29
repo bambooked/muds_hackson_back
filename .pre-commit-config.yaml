@@ -1,0 +1,27 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4  # 必要に応じて最新版に更新してください
+    hooks:
+      - id: ruff
+        args: [
+          "--fix",
+          "--unsafe-fixes"
+        ]
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.6
+    hooks:
+      - id: bandit
+        args: ['-n', '4']  # 並列数をここで指定
+        files: ^(src/|main\.py)
+        exclude: ^src/tests/
+
+  # - repo: local
+  #   hooks:
+  #     - id: pytest
+  #       name: pytest
+  #       entry: pytest src/tests/
+  #       language: python
+  #       pass_filenames: false
+  #       always_run: true
+  #       additional_dependencies: [pytest]
