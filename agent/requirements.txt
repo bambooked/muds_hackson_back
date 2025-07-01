@@ -1,0 +1,45 @@
+# 研究データ基盤システム 必要ライブラリ
+
+# Webフレームワーク
+Flask==2.3.3
+Werkzeug==2.3.7
+
+# Google AI
+google-generativeai==0.3.2
+
+# データベース
+
+# HTTPリクエスト
+requests==2.31.0
+
+# 数値計算
+numpy>=1.25
+
+# ファイル処理
+python-magic==0.4.27  # ファイルタイプ検出
+chardet==5.2.0  # エンコーディング検出
+
+# PDF処理（オプション）
+PyPDF2==3.0.1  # PDFテキスト抽出
+
+# 環境変数管理
+python-dotenv==1.0.0
+
+# 日付時刻処理
+python-dateutil==2.8.2
+
+# JSON処理
+ujson==5.8.0  # 高速JSON処理
+
+# テスト
+pytest==7.4.2
+pytest-cov==4.1.0
+pytest-mock==3.11.1
+
+# 開発ツール
+black==23.9.1  # コードフォーマッター
+flake8==6.1.0  # リンター
+mypy==1.5.1  # 型チェック
+
+# セキュリティ
+cryptography==41.0.7  # 暗号化処理
