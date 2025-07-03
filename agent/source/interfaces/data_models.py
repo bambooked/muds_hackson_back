@@ -19,6 +19,24 @@ from pathlib import Path
 
 
 # ========================================
+# Search Mode Definition (Fallback)
+# ========================================
+
+class SearchMode(Enum):
+    """検索モード（フォールバック定義）"""
+    KEYWORD_ONLY = "keyword"
+    SEMANTIC_ONLY = "semantic"
+    HYBRID = "hybrid"
+
+
+class Permission(Enum):
+    """権限定義（フォールバック）"""
+    READ = "read"
+    WRITE = "write"
+    DELETE = "delete"
+
+
+# ========================================
 # Core Data Models
 # ========================================
 

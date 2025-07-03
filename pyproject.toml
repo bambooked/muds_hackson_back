@@ -16,6 +16,18 @@ dependencies = [
     "fastapi>=0.115.14",
     "uvicorn>=0.30.0",
     "httpx>=0.25.0",
+    # Authentication dependencies
+    "google-auth-oauthlib>=1.0.0",
+    "PyJWT>=2.8.0",
+    "cryptography>=41.0.0",
+    "redis>=5.0.0",
+    "python-multipart>=0.0.6", # For FastAPI form handling
+    # Vector search dependencies (Instance B)
+    "chromadb>=0.4.0",
+    "sentence-transformers>=2.2.0",
+    "psutil>=7.0.0",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.0.0",
 ]
 
 [project.optional-dependencies]

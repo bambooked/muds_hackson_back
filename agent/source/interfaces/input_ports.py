@@ -443,36 +443,245 @@ class InputPortRegistry:
 
 async def integrate_with_existing_indexer(
     file_path: str,
-    category: Optional[str] = None
+    category: Optional[str] = None,
+    target_name: Optional[str] = None
 ) -> bool:
     """
     既存NewFileIndexerとの連携ヘルパー
     
+    Args:
+        file_path: 処理対象ファイルパス（一時ファイル）
+        category: 'dataset', 'paper', 'poster' または None（自動判定）
+        target_name: ファイル名（Google Drive等での元ファイル名）
+    
+    Returns:
+        bool: 統合成功可否
+    
     Claude Code実装時の使用例：
     ```python
     # Google Driveからダウンロードしたファイルを既存システムで処理
-    success = await integrate_with_existing_indexer('/tmp/downloaded_file.pdf', 'paper')
+    success = await integrate_with_existing_indexer(
+        '/tmp/downloaded_file.pdf', 
+        'paper',
+        'research_paper.pdf'
+    )
     ```
     """
     try:
-        # 既存システムへの橋渡し
-        from ..ui.interface import UserInterface
-        ui = UserInterface()
+        import shutil
+        from pathlib import Path
+        from ..indexer.new_indexer import NewFileIndexer
         
-        # ファイルのカテゴリ自動判定または指定カテゴリ使用
-        if category:
-            # 指定カテゴリでの処理実装
-            pass
+        source_path = Path(file_path)
+        if not source_path.exists():
+            raise InputError(f"Source file not found: {file_path}")
+        
+        # ファイル名決定
+        final_filename = target_name or source_path.name
+        
+        # カテゴリ判定
+        if not category:
+            category = _determine_file_category(final_filename, source_path)
+        
+        # 適切なディレクトリにファイル配置
+        target_path = _get_target_path(category, final_filename)
+        
+        # ディレクトリ作成
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # ファイル移動（同名ファイルがある場合は上書き回避）
+        if target_path.exists():
+            stem = target_path.stem
+            suffix = target_path.suffix
+            counter = 1
+            while target_path.exists():
+                target_path = target_path.parent / f"{stem}_{counter}{suffix}"
+                counter += 1
+        
+        # ファイルコピー
+        shutil.copy2(source_path, target_path)
+        
+        # NewFileIndexerで直接処理
+        indexer = NewFileIndexer(auto_analyze=True)
+        
+        # 単一ファイルのスキャン・インデックス処理
+        if category == "dataset":
+            # データセットの場合は全体を再スキャン（データセット単位管理のため）
+            results = indexer.index_all_files()
         else:
-            # 自動判定処理実装
-            pass
+            # 論文・ポスターの場合は個別処理
+            # 新構造用ファイルオブジェクト作成
+            file_obj = _create_new_file_object(target_path, category)
+            
+            if category == "paper":
+                success = indexer._process_paper(file_obj)
+            elif category == "poster":
+                success = indexer._process_poster(file_obj)
+            else:
+                raise InputError(f"Unsupported category: {category}")
+            
+            if not success:
+                raise InputError(f"Failed to process {category} file")
         
-        # インデックス更新実行
-        ui.update_index()
+        import logging
+        logging.info(f"Successfully integrated file: {final_filename} -> {target_path} ({category})")
         return True
         
     except Exception as e:
+        import logging
+        logging.error(f"Failed to integrate with existing indexer: {e}")
         raise InputError(f"Failed to integrate with existing indexer: {e}")
+
+
+def _determine_file_category(filename: str, file_path: Path) -> str:
+    """
+    ファイル名・パス・拡張子からカテゴリを自動判定
+    
+    Args:
+        filename: ファイル名
+        file_path: ファイルパス
+        
+    Returns:
+        str: 'dataset', 'paper', 'poster'
+    """
+    filename_lower = filename.lower()
+    extension = file_path.suffix.lower()
+    
+    # データセット判定（優先）
+    dataset_keywords = ['dataset', 'data', 'csv', 'json', 'jsonl']
+    if (extension in ['.csv', '.json', '.jsonl'] or 
+        any(keyword in filename_lower for keyword in dataset_keywords)):
+        return 'dataset'
+    
+    # ポスター判定
+    poster_keywords = ['poster', 'presentation', 'slide']
+    if any(keyword in filename_lower for keyword in poster_keywords):
+        return 'poster'
+    
+    # 論文判定（PDFデフォルト）
+    paper_keywords = ['paper', 'thesis', 'research', 'journal', 'conference']
+    if (extension == '.pdf' or 
+        any(keyword in filename_lower for keyword in paper_keywords)):
+        return 'paper'
+    
+    # デフォルト判定
+    if extension == '.pdf':
+        return 'paper'
+    else:
+        return 'dataset'
+
+
+def _get_target_path(category: str, filename: str) -> Path:
+    """
+    カテゴリに基づく配置先パス取得
+    
+    Args:
+        category: ファイルカテゴリ
+        filename: ファイル名
+        
+    Returns:
+        Path: 配置先パス
+    """
+    from pathlib import Path
+    import os
+    
+    # DATA_DIRを取得（既存config.pyと統合）
+    data_dir = Path(os.getenv("DATA_DIR_PATH", "data"))
+    
+    if category == "dataset":
+        # データセットは専用ディレクトリに配置
+        # ファイル名からデータセット名を抽出
+        dataset_name = _extract_dataset_name(filename)
+        return data_dir / "datasets" / dataset_name / filename
+    elif category == "paper":
+        return data_dir / "paper" / filename
+    elif category == "poster":
+        return data_dir / "poster" / filename
+    else:
+        raise InputError(f"Unknown category: {category}")
+
+
+def _extract_dataset_name(filename: str) -> str:
+    """
+    ファイル名からデータセット名を抽出
+    
+    Args:
+        filename: ファイル名
+        
+    Returns:
+        str: データセット名
+    """
+    # 拡張子を除去
+    stem = Path(filename).stem
+    
+    # 一般的なデータセット命名パターンの処理
+    # 例: "esg_data_2024.csv" -> "esg_data"
+    # 例: "research_dataset_v1.json" -> "research_dataset" 
+    
+    # 数字・バージョン文字列を除去
+    import re
+    # _v1, _2024, -final などの末尾パターンを除去
+    cleaned = re.sub(r'[_-](v?\d+|final|temp|test|sample)$', '', stem, flags=re.IGNORECASE)
+    
+    # 空になった場合は元の名前を使用
+    if not cleaned:
+        cleaned = stem
+    
+    # アンダースコアをハイフンに統一（ディレクトリ名として安全）
+    dataset_name = cleaned.replace('_', '-').lower()
+    
+    return dataset_name
+
+
+def _create_new_file_object(file_path: Path, category: str):
+    """
+    新構造のファイルオブジェクト作成
+    
+    Args:
+        file_path: ファイルパス
+        category: ファイルカテゴリ
+        
+    Returns:
+        ファイルオブジェクト（既存のFile互換）
+    """
+    from datetime import datetime
+    import hashlib
+    
+    try:
+        stat = file_path.stat()
+        
+        # ファイルハッシュ計算
+        sha256_hash = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(byte_block)
+        content_hash = sha256_hash.hexdigest()
+        
+        # 既存のFileクラス互換オブジェクト作成
+        class FileObject:
+            def __init__(self, file_path, file_name, file_size, created_at, updated_at, content_hash, category):
+                self.file_path = str(file_path)
+                self.file_name = file_name
+                self.file_size = file_size
+                self.created_at = created_at
+                self.updated_at = updated_at
+                self.content_hash = content_hash
+                self.category = category
+        
+        return FileObject(
+            file_path=str(file_path.absolute()),
+            file_name=file_path.name,
+            file_size=stat.st_size,
+            created_at=datetime.fromtimestamp(stat.st_ctime),
+            updated_at=datetime.fromtimestamp(stat.st_mtime),
+            content_hash=content_hash,
+            category=category
+        )
+        
+    except Exception as e:
+        import logging
+        logging.error(f"Failed to create file object: {file_path}, error: {e}")
+        raise InputError(f"Failed to create file object: {e}")
 
 
 def create_temp_file_path(job_id: str, original_filename: str) -> Path:
