@@ -16,3 +16,12 @@ data/
 # claude
 CLAUDE.md
 claude.md
+
+# Google Drive認証情報（機密情報）
+google_drive_credentials.json
+google_drive_token.json
+
+# テストファイル（一時的）
+test_google_drive_*.py
+test_integration.py
+simple_integration_test.py
