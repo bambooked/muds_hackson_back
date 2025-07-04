@@ -182,8 +182,8 @@ class HealthCheckImpl(HealthCheckPort):
             response_time = (time.time() - start_time) * 1000
             
             # データベースファイルサイズ確認
-            db_path = Path("agent/database/research_data.db")
-            db_size = db_path.stat().st_size if db_path.exists() else 0
+            from tools.config import DATABASE_PATH
+            db_size = DATABASE_PATH.stat().st_size if DATABASE_PATH.exists() else 0
             
             return {
                 'status': ServiceStatus.HEALTHY.value,
@@ -202,7 +202,8 @@ class HealthCheckImpl(HealthCheckPort):
     async def _check_filesystem_health(self) -> Dict[str, Any]:
         """ファイルシステムヘルスチェック"""
         try:
-            data_dir = Path("data")
+            from tools.config import DATA_DIR
+            data_dir = DATA_DIR
             
             if not data_dir.exists():
                 return {

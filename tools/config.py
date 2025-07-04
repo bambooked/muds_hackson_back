@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # 基本パス
-BASE_DIR = Path(__file__).parent
-DATA_DIR = Path(os.getenv("DATA_DIR_PATH", "data"))
+BASE_DIR = Path(__file__).parent.parent  # プロジェクトルートに移動
+DATA_DIR = BASE_DIR / os.getenv("DATA_DIR_PATH", "data")
 DATABASE_DIR = BASE_DIR / "agent" / "database"
 
 # Google Gemini API設定
@@ -36,6 +36,11 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
+
+# pypdf関連の警告を完全に抑制
+logging.getLogger('pypdf').setLevel(logging.CRITICAL)
+logging.getLogger('pypdf._cmap').setLevel(logging.CRITICAL)
+logging.getLogger('pypdf._reader').setLevel(logging.CRITICAL)
 
 def validate_config():
     """設定の妥当性を検証"""

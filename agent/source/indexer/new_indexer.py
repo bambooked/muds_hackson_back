@@ -185,6 +185,13 @@ class NewFileIndexer:
             logger.info(f"論文は既に登録済み: {file_obj.file_name}")
             paper_to_analyze = existing_paper
         else:
+            # ファイル名の重複チェック
+            query = "SELECT * FROM papers WHERE file_name = ?"
+            row = self.paper_repo.db.fetch_one(query, (file_obj.file_name,))
+            if row:
+                logger.warning(f"同じファイル名の論文が既に存在するため、スキップします: {file_obj.file_name}")
+                return False
+            
             paper = Paper(
                 file_path=file_obj.file_path,
                 file_name=file_obj.file_name,
@@ -215,6 +222,13 @@ class NewFileIndexer:
             logger.info(f"ポスターは既に登録済み: {file_obj.file_name}")
             poster_to_analyze = existing_poster
         else:
+            # ファイル名の重複チェック
+            query = "SELECT * FROM posters WHERE file_name = ?"
+            row = self.poster_repo.db.fetch_one(query, (file_obj.file_name,))
+            if row:
+                logger.warning(f"同じファイル名のポスターが既に存在するため、スキップします: {file_obj.file_name}")
+                return False
+            
             poster = Poster(
                 file_path=file_obj.file_path,
                 file_name=file_obj.file_name,
