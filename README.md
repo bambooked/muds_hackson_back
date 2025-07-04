@@ -1,17 +1,18 @@
 # Research Data Management System
 
-Google Gemini APIを使用してdataディレクトリ内の研究データ（論文、ポスター、データセット）を管理・要約するシステムです。
+Google Gemini APIを使用して研究データ（論文、ポスター、データセット）を管理・解析する完全LLM駆動の研究支援システムです。
 
 ## 主要機能
 
+- **完全LLM駆動チャットインターフェース**: すべての応答をAIが動的生成（ハードコーディングなし）
 - **カテゴリー別データ管理**: データセット、論文、ポスターを個別のテーブルで管理
 - **自動ファイル解析**: 新規ファイル登録時にGoogle Gemini APIで自動解析・要約
 - **データセット単位管理**: ディレクトリごとにデータセットとして管理（現在4データセット対応）
-- **ファイルインデックス**: dataディレクトリを自動スキャンしてファイルを登録
-- **Google Gemini API解析**: PDF、CSV、JSON、JSONLファイルの内容を解析・要約
-- **研究相談機能**: クエリに基づく研究アドバイスと関連文書の推薦
-- **統計情報**: ファイル統計、研究トレンド、カテゴリー別レポート
-- **データ管理**: ファイル検索、メタデータ管理、エクスポート機能
+- **高度な検索機能**: 日本語対応のキーワード抽出とTF-IDF検索の統合
+- **データベース検索・相談**: 登録済みリソースの検索と具体的な活用方法の提案
+- **研究計画・相談**: 研究テーマの構造化、計画立案、方法論の支援
+- **統計情報**: ファイル統計、解析率、カテゴリー別レポート
+- **データ管理**: ファイル操作、メタデータ編集、重複防止機能
 
 ## プロジェクト構造
 
@@ -32,17 +33,20 @@ Google Gemini APIを使用してdataディレクトリ内の研究データ（�
 │   │   │   ├── new_models.py    # 新データモデル
 │   │   │   └── new_repository.py # 新リポジトリクラス
 │   │   ├── indexer/         # ファイルインデックス機能
-│   │   │   ├── new_indexer.py   # 新インデクサー
+│   │   │   ├── new_indexer.py   # 新インデクサー（重複防止対応）
 │   │   │   └── scanner.py       # ファイルスキャナー
 │   │   ├── analyzer/        # Google Gemini API文書解析
 │   │   │   ├── new_analyzer.py  # 新アナライザー
-│   │   │   ├── gemini_client.py # Gemini APIクライアント
-│   │   │   └── file_analyzer.py # ファイル解析
-│   │   ├── manager/         # データ管理・検索
-│   │   ├── advisor/         # 研究相談・推薦機能
+│   │   │   ├── gemini_client.py # Gemini APIクライアント（拡張版）
+│   │   │   └── file_analyzer.py # ファイル解析（pypdf対応）
+│   │   ├── advisor/         # 研究支援機能（拡張）
+│   │   │   ├── enhanced_research_advisor.py # 拡張研究相談
+│   │   │   ├── dataset_advisor.py # データセット解説
+│   │   │   ├── research_visualizer.py # 研究構造化
+│   │   │   └── research_advisor.py # 基本研究相談
 │   │   ├── statistics/      # 統計情報生成
 │   │   └── ui/             # ユーザーインターフェース
-│   │       └── interface.py    # メインUI（新構造対応）
+│   │       └── interface.py    # メインUI（完全LLM統合）
 │   ├── database/
 │   │   └── research_data.db # SQLiteデータベース（新構造）
 │   ├── tests/              # テストファイル群
@@ -86,7 +90,7 @@ uv sync --dev
 #### pipを使用
 
 ```bash
-pip install google-generativeai pandas PyPDF2 scikit-learn python-dotenv pytest
+pip install google-generativeai pandas pypdf pycryptodome scikit-learn python-dotenv pytest
 ```
 
 ### 3. データディレクトリの準備
@@ -114,13 +118,19 @@ uv run python agent/main.py
 
 ### メニュー操作
 
-1. **データインデックスの更新**: ファイルをスキャンしてカテゴリー別テーブルに登録・自動解析
-2. **ファイル検索**: データセット、論文、ポスターをカテゴリー別に検索
-3. **ファイル解析**: カテゴリー別にGoogle Gemini APIで文書内容を解析
-4. **研究相談**: 質問に対する研究アドバイスと関連文書の推薦
-5. **統計情報表示**: カテゴリー別統計、解析率の表示
-6. **データ管理**: ファイルの追加、削除、移動、メタデータ編集
-7. **設定**: 現在の設定の確認
+1. **データ更新**: ファイルをスキャンしてカテゴリー別テーブルに登録・自動解析
+2. **データベース検索・相談**: 登録済みリソースの検索と活用支援（LLMチャット形式）
+   - データセット・論文・ポスターの検索
+   - 見つかったリソースの詳細解説
+   - 具体的な活用方法とデータ分析手法の提案
+3. **研究計画・相談**: 研究活動の計画立案と方法論支援（LLMチャット形式）
+   - 研究テーマの構造化・可視化
+   - 研究計画の段階的立案
+   - 研究方法論の選択支援
+   - 独創性評価と学術的価値の検討
+4. **データ管理**: ファイル操作、メタデータ編集、重複防止
+5. **統計情報**: カテゴリー別統計、解析率の表示
+0. **設定**: 現在の設定の確認
 
 ### コマンドライン使用例
 
@@ -215,13 +225,13 @@ CREATE TABLE dataset_files (
 );
 ```
 
-### 現在の統計（2025年7月1日更新）
+### 現在の統計（2025年7月4日更新）
 
 実際のシステム統計:
-- **総ファイル数**: 32件（全て登録・解析済み）
+- **総ファイル数**: 34件（全て登録・解析済み）
 - **データセット**: 4個（100%解析済み）
-- **論文**: 2件（100%解析済み）
-- **ポスター**: 2件（100%解析済み）
+- **論文**: 3件（100%解析済み）
+- **ポスター**: 3件（100%解析済み）
 - **データセットファイル**: 28件
 - **合計サイズ**: 約293MB
 
@@ -236,13 +246,15 @@ CREATE TABLE dataset_files (
 
 ### 論文・ポスター詳細
 
-**論文（2件）**:
+**論文（3件）**:
 - `2322007.pdf`: 日本語の大規模言語モデル (LLM) における社会的なバイアスを分析...
 - `5A-02.pdf`: Latent Dirichlet Allocation (LDA) を用いた自動タグ付け手法...
+- `main-j.pdf`: PC作業中のまばたきを検出・分析し、UI/UXの改善に役立てる研究...
 
-**ポスター（2件）**:
+**ポスター（3件）**:
 - `2322039.pdf`: LDAとLLMを用いた単一文書への新規タグ付け手法を提案...
 - `2322007.pdf`: 大規模言語モデル(LLM)の出力におけるステレオタイプ的バイアスの低減...
+- `5A-03.pdf`: 文書の自動タグ付け手法に関する研究...
 
 ## テスト
 
@@ -283,19 +295,30 @@ python -m pytest agent/tests/ --cov=agent/source --cov-report=html
 
 ## 特徴的な機能
 
-### 1. 自動解析機能
+### 1. 完全LLM駆動チャットインターフェース
+- すべての応答をGoogle Gemini APIが動的生成
+- ハードコーディングされた応答を完全排除
+- 継続的対話による深い研究支援
+
+### 2. 高度な検索機能
+- 日本語対応のキーワード抽出（助詞・動詞を適切に処理）
+- TF-IDF検索とキーワード検索の統合
+- 既存研究データベースを確実に参照・活用
+
+### 3. 専門化された支援モード
+- **データベース検索・相談**: 登録済みリソースの検索と活用に特化
+- **研究計画・相談**: 研究テーマの構造化と計画立案に特化
+- 各モードで最適化されたLLMプロンプト
+
+### 4. 自動解析機能
 - ファイル登録時に自動的にGoogle Gemini APIで解析
 - データセットは「このデータセットは～」形式で要約生成
 - 論文・ポスターはタイトル、著者、要約を抽出
 
-### 2. カテゴリー別管理
-- データセット、論文、ポスターを別々のテーブルで管理
-- 各カテゴリーに最適化されたフィールド構造
-- カテゴリー別の検索・統計機能
-
-### 3. データセット単位管理
-- `data/datasets/`内のディレクトリごとにデータセットとして管理
-- 複数ファイルを1つのデータセットとして解析・要約
+### 5. データ品質管理
+- 同一ファイル名の重複登録を防止
+- content_hashによる内容重複検出
+- カテゴリー別の最適化されたテーブル構造
 
 ## トラブルシューティング
 
@@ -306,7 +329,7 @@ python -m pytest agent/tests/ --cov=agent/source --cov-report=html
 # 依存関係を再インストール
 uv sync
 # または
-pip install google-generativeai pandas PyPDF2 scikit-learn python-dotenv pytest
+pip install google-generativeai pandas pypdf pycryptodome scikit-learn python-dotenv pytest
 ```
 
 **2. Google Gemini APIエラー**
@@ -335,6 +358,10 @@ python -c "from agent.source.database.connection import db_connection; db_connec
 - ✅ メインメニューから全機能にアクセスできる
 - ✅ 研究相談機能が動作する
 - ✅ 全てのファイルが解析済み（100%解析率）
+- ✅ 完全LLM駆動のチャットインターフェース実装
+- ✅ 日本語対応の高度な検索機能実装
+- ✅ データベース参照機能の強化
+- ✅ 専門化された支援モードの実装
 
 ## 技術仕様
 
@@ -349,6 +376,12 @@ python -c "from agent.source.database.connection import db_connection; db_connec
 
 - [Google Gemini API Documentation](https://ai.google.dev/)
 - [uv Documentation](https://docs.astral.sh/uv/)
-- [PyPDF2 Documentation](https://pypdf2.readthedocs.io/)
+- [pypdf Documentation](https://pypdf.readthedocs.io/)
 - [scikit-learn Documentation](https://scikit-learn.org/)
 - [SQLite Documentation](https://www.sqlite.org/docs.html)
+
+## 更新履歴
+
+- **2025年7月4日**: 完全LLM駆動チャットインターフェース実装、検索機能改善、データベース参照強化
+- **2025年7月4日**: PyPDF2からpypdfへ移行、重複ファイル対策実装
+- **2025年7月1日**: カテゴリー別データベース構造実装、拡張研究支援機能追加

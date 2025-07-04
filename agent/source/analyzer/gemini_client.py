@@ -38,6 +38,94 @@ class GeminiClient:
         
         logger.info(f"Gemini クライアント初期化完了: モデル={GEMINI_MODEL}")
     
+    def generate_research_advice_enhanced(self, prompt: str, retry_count: int = 3) -> Optional[str]:
+        """拡張研究アドバイス生成"""
+        for attempt in range(retry_count):
+            try:
+                # 研究アドバイス用のモデル設定（JSONではなくテキスト出力）
+                advice_model = genai.GenerativeModel(
+                    model_name=GEMINI_MODEL,
+                    generation_config={
+                        "temperature": 0.8,
+                        "top_p": 0.95,
+                        "top_k": 40,
+                        "max_output_tokens": 4096,
+                        "response_mime_type": "text/plain",
+                    },
+                    safety_settings={
+                        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+                        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                    }
+                )
+                
+                response = advice_model.generate_content(prompt)
+                
+                if response.text:
+                    logger.info("拡張研究アドバイス生成成功")
+                    return response.text.strip()
+                else:
+                    logger.warning(f"空のレスポンス (試行 {attempt + 1}/{retry_count})")
+                    
+            except Exception as e:
+                logger.error(f"拡張研究アドバイス生成エラー (試行 {attempt + 1}/{retry_count}): {e}")
+                if attempt < retry_count - 1:
+                    time.sleep(2 ** attempt)
+                else:
+                    logger.error("拡張研究アドバイス生成失敗: 最大試行回数に到達")
+        
+        return None
+    
+    def analyze_dataset_context(self, dataset_name: str, dataset_summary: str, 
+                              user_question: str, retry_count: int = 3) -> Optional[str]:
+        """データセットの文脈的解説生成"""
+        prompt = f"""あなたはデータサイエンス・研究支援の専門家です。
+以下のデータセットについて、ユーザーの質問に答えてください。
+
+【データセット名】
+{dataset_name}
+
+【データセット概要】
+{dataset_summary}
+
+【ユーザーの質問】
+{user_question}
+
+以下の観点で詳細な解説を提供してください：
+1. データセットの特徴と構造
+2. 研究・分析での活用可能性
+3. 推奨される分析手法
+4. 注意すべき点やデータの制限
+5. 類似研究での活用事例
+
+実践的で具体的な回答を心がけてください。"""
+
+        for attempt in range(retry_count):
+            try:
+                advice_model = genai.GenerativeModel(
+                    model_name=GEMINI_MODEL,
+                    generation_config={
+                        "temperature": 0.7,
+                        "top_p": 0.95,
+                        "max_output_tokens": 3072,
+                        "response_mime_type": "text/plain",
+                    }
+                )
+                
+                response = advice_model.generate_content(prompt)
+                
+                if response.text:
+                    logger.info(f"データセット解説生成成功: {dataset_name}")
+                    return response.text.strip()
+                    
+            except Exception as e:
+                logger.error(f"データセット解説生成エラー (試行 {attempt + 1}/{retry_count}): {e}")
+                if attempt < retry_count - 1:
+                    time.sleep(2 ** attempt)
+        
+        return None
+    
     def analyze_text(self, text: str, prompt_template: str, 
                     retry_count: int = 3) -> Optional[Dict[str, Any]]:
         """テキストを解析"""

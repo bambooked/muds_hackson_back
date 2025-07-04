@@ -2,8 +2,14 @@ import json
 from pathlib import Path
 from typing import Dict, Any, Optional
 import logging
-import PyPDF2
+import warnings
+from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 import pandas as pd
+
+# pypdfの警告を完全に抑制
+logging.getLogger('pypdf').setLevel(logging.CRITICAL)
+logging.getLogger('pypdf._cmap').setLevel(logging.CRITICAL)
 
 from .gemini_client import GeminiClient
 from ..database.models import File, AnalysisResult
@@ -87,19 +93,39 @@ class FileAnalyzer:
         try:
             text_content = []
             
-            with open(file_path, 'rb') as file:
-                pdf_reader = PyPDF2.PdfReader(file)
+            # 警告を完全に抑制
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
                 
-                for page_num, page in enumerate(pdf_reader.pages):
-                    try:
-                        text = page.extract_text()
-                        if text:
-                            text_content.append(f"--- ページ {page_num + 1} ---\n{text}")
-                    except Exception as e:
-                        logger.warning(f"ページ読み込みエラー: ページ {page_num + 1}, {e}")
+                # 一時的にpypdfのログレベルを無効化
+                pypdf_logger = logging.getLogger('pypdf')
+                original_level = pypdf_logger.level
+                pypdf_logger.setLevel(logging.CRITICAL + 1)
+                
+                try:
+                    with open(file_path, 'rb') as file:
+                        pdf_reader = PdfReader(file)
+                        
+                        for page_num, page in enumerate(pdf_reader.pages):
+                            try:
+                                text = page.extract_text()
+                                if text and text.strip():
+                                    text_content.append(f"--- ページ {page_num + 1} ---\n{text}")
+                            except Exception as e:
+                                logger.warning(f"ページ読み込みエラー: ページ {page_num + 1}, {e}")
+                finally:
+                    # ログレベルを元に戻す
+                    pypdf_logger.setLevel(original_level)
+            
+            if not text_content:
+                logger.warning(f"PDFからテキストを抽出できませんでした: {file_path}")
+                return "テキスト抽出不可能なPDFファイル"
             
             return "\n\n".join(text_content)
             
+        except PdfReadError as e:
+            logger.error(f"PDF読み込みエラー（暗号化または破損の可能性）: {file_path}, {e}")
+            return None
         except Exception as e:
             logger.error(f"PDF読み込みエラー: {file_path}, {e}")
             return None

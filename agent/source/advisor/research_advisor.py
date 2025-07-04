@@ -6,6 +6,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
 from ..database.repository import FileRepository, AnalysisResultRepository
+from ..database.new_repository import DatasetRepository, PaperRepository, PosterRepository, DatasetFileRepository
 from ..analyzer.gemini_client import GeminiClient
 
 logger = logging.getLogger(__name__)
@@ -15,8 +16,16 @@ class ResearchAdvisor:
     """研究相談機能を提供するクラス"""
     
     def __init__(self):
+        # 旧構造（互換性維持）
         self.file_repo = FileRepository()
         self.analysis_repo = AnalysisResultRepository()
+        
+        # 新構造（カテゴリー別）
+        self.dataset_repo = DatasetRepository()
+        self.paper_repo = PaperRepository()
+        self.poster_repo = PosterRepository()
+        self.dataset_file_repo = DatasetFileRepository()
+        
         self.gemini_client = GeminiClient()
     
     def find_similar_documents(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
