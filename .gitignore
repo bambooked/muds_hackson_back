@@ -16,3 +16,7 @@ data/
 # claude
 CLAUDE.md
 claude.md
+
+# cridentials
+
+google_drive_credentials.json

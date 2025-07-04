@@ -20,6 +20,7 @@ Claude Code実装ガイダンス：
 import asyncio
 import hashlib
 import json
+import os
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -90,7 +91,7 @@ class GoogleDrivePortImpl(GoogleDrivePort):
         Google Drive認証実装
         
         Args:
-            credentials: OAuth2認証情報
+            credentials: OAuth2認証情報（空でも可）
             user_context: ユーザーコンテキスト
             
         Returns:
@@ -101,13 +102,17 @@ class GoogleDrivePortImpl(GoogleDrivePort):
             return False
             
         try:
-            # OAuth2フロー実装
-            if 'token' in credentials:
-                # 既存トークンを使用
+            # 既存トークンファイルを優先的に使用
+            token_path = './google_drive_token.json'
+            if os.path.exists(token_path):
+                logging.info("Using existing token file for authentication")
+                self.credentials = Credentials.from_authorized_user_file(token_path, self.config.scopes)
+            elif 'token' in credentials:
+                # 渡されたトークンを使用
                 self.credentials = Credentials.from_authorized_user_info(
                     credentials, self.config.scopes
                 )
-            else:
+            elif 'client_config' in credentials:
                 # 新規認証フロー
                 flow = Flow.from_client_config(
                     credentials['client_config'],
@@ -129,6 +134,10 @@ class GoogleDrivePortImpl(GoogleDrivePort):
                         client_secret=credentials.get('client_secret'),
                         scopes=self.config.scopes
                     )
+                else:
+                    raise InputError("No access token provided for authentication", "AUTH_FAILED")
+            else:
+                raise InputError("No valid credentials provided - please run authentication first", "AUTH_FAILED")
             
             # トークン更新チェック
             if self.credentials and self.credentials.expired and self.credentials.refresh_token:
