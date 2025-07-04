@@ -7,8 +7,8 @@ RAGインターフェースとPaaS APIの動作確認用テストスクリプト
 import asyncio
 import json
 from datetime import datetime
-from rag_interface import RAGInterface
-from paas_api import PaaSClient
+from services.rag_interface import RAGInterface
+from services.api.paas_api import PaaSClient
 
 
 def test_rag_interface():

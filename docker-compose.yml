@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Core settings
+      - PAAS_ENVIRONMENT=development
+      - PAAS_DEBUG=true
+      - PAAS_API_HOST=0.0.0.0
+      - PAAS_API_PORT=8000
+      
+      # Database
+      - DATABASE_URL=postgresql://paas:password@db:5432/research_paas
+      
+      # Vector search - Qdrant local
+      - PAAS_ENABLE_VECTOR_SEARCH=true
+      - VECTOR_SEARCH_PROVIDER=qdrant
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - VECTOR_COLLECTION_NAME=research_documents
+      
+      # Authentication - disabled for development
+      - PAAS_ENABLE_AUTHENTICATION=false
+      - AUTH_ENABLED=false
+      
+      # Google Drive - disabled for development
+      - PAAS_ENABLE_GOOGLE_DRIVE=false
+      
+      # Gemini API
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=gemini-2.0-flash
+      
+    depends_on:
+      - db
+      - qdrant
+    volumes:
+      - ./data:/app/data
+      - ./agent/database:/app/agent/database
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        sleep 10 &&
+        python paas_api_with_auth.py
+      "
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: research_paas
+      POSTGRES_USER: paas
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paas -d research_paas"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__HTTP_PORT=6333
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  redis_data:

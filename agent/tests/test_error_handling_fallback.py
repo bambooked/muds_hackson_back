@@ -446,7 +446,7 @@ class TestExistingSystemProtection:
         """設定マネージャーが既存設定を上書きしないテスト"""
         # 既存config.pyの動作確認
         try:
-            import config
+            import tools.config as config
             assert hasattr(config, 'DATA_DIR')
             assert hasattr(config, 'GEMINI_API_KEY')
             original_data_dir = config.DATA_DIR
@@ -463,7 +463,7 @@ class TestExistingSystemProtection:
         
         # 既存設定が保持されていることを確認
         try:
-            import config
+            import tools.config as config
             assert config.DATA_DIR == original_data_dir  # 既存設定は変更されない
         except Exception as e:
             pytest.fail(f"既存設定保持確認失敗: {e}")

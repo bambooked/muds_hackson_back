@@ -503,7 +503,7 @@ class UnifiedPaaSImpl(UnifiedPaaSInterface):
                 if dataset and (force_reanalyze or not dataset.summary):
                     await asyncio.to_thread(
                         self._existing_system.analyzer.analyze_dataset, 
-                        dataset.name
+                        dataset.id
                     )
                     # 再取得
                     dataset = self._existing_system.dataset_repo.find_by_id(document_id)

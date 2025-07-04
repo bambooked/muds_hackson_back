@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional, Generator
 import logging
 
-from config import DATABASE_PATH
+from tools.config import DATABASE_PATH
 
 logger = logging.getLogger(__name__)
 

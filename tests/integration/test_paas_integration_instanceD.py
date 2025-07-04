@@ -92,10 +92,10 @@ class InstanceDIntegrationTest:
             # 必要なモジュールのインポート確認
             from agent.source.interfaces.config_manager import get_config_manager
             from agent.source.interfaces.paas_orchestration_impl import create_paas_orchestration
-            from enhanced_rag_interface import create_enhanced_rag_interface
+            from services.enhanced_rag_interface import create_enhanced_rag_interface
             
             # 既存システムのインポート確認
-            from rag_interface import RAGInterface
+            from services.rag_interface import RAGInterface
             from agent.source.ui.interface import UserInterface
             
             self._record_test_result(test_name, True, "全必要モジュールのインポート成功")
@@ -110,7 +110,7 @@ class InstanceDIntegrationTest:
         
         try:
             # 既存RAGInterface直接使用テスト
-            from rag_interface import RAGInterface
+            from services.rag_interface import RAGInterface
             legacy_rag = RAGInterface()
             
             # 基本動作確認
@@ -280,7 +280,7 @@ class InstanceDIntegrationTest:
         logger.info(f"テスト開始: {test_name}")
         
         try:
-            from enhanced_rag_interface import create_enhanced_rag_interface, create_backward_compatible_interface
+            from services.enhanced_rag_interface import create_enhanced_rag_interface, create_backward_compatible_interface
             
             # 拡張インターフェース作成・初期化
             enhanced_rag = await create_enhanced_rag_interface()
@@ -338,7 +338,7 @@ class InstanceDIntegrationTest:
         logger.info(f"テスト開始: {test_name}")
         
         try:
-            from enhanced_rag_interface import EnhancedRAGInterface
+            from services.enhanced_rag_interface import EnhancedRAGInterface
             
             # 拡張機能なしでの初期化テスト
             enhanced_rag = EnhancedRAGInterface()
@@ -388,7 +388,7 @@ class InstanceDIntegrationTest:
         
         try:
             # シナリオ1: 既存システムのみでの動作確認
-            from rag_interface import RAGInterface
+            from services.rag_interface import RAGInterface
             legacy_only = RAGInterface()
             legacy_stats = legacy_only.get_system_stats()
             
@@ -399,7 +399,7 @@ class InstanceDIntegrationTest:
             )
             
             # シナリオ2: 拡張システムでの既存機能利用
-            from enhanced_rag_interface import create_enhanced_rag_interface
+            from services.enhanced_rag_interface import create_enhanced_rag_interface
             enhanced = await create_enhanced_rag_interface()
             enhanced_stats = await enhanced.get_system_statistics()
             

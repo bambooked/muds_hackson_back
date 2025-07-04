@@ -872,7 +872,7 @@ class InstanceDCompleteValidationTest:
             
             # 既存連携: RAGInterface拡張
             try:
-                from enhanced_rag_interface import EnhancedRAGInterface
+                from services.enhanced_rag_interface import EnhancedRAGInterface
                 enhanced_rag = EnhancedRAGInterface()
                 instanceD_requirements['rag_interface_extended'] = True
             except Exception:

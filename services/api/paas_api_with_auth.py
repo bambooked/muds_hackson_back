@@ -24,7 +24,7 @@ from fastapi import FastAPI, HTTPException, Query, Path, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 # 既存システムのインポート
-from rag_interface import RAGInterface, DocumentMetadata, SearchResult, IngestionResult, SystemStats
+from services.rag_interface import RAGInterface, DocumentMetadata, SearchResult, IngestionResult, SystemStats
 
 # 認証システムのインポート
 from agent.source.interfaces.fastapi_auth_middleware import (

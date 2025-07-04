@@ -16,7 +16,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 try:
-    from config import validate_config
+    from tools.config import validate_config
     from agent.source.ui.interface import UserInterface
 except ImportError as e:
     print(f"モジュールのインポートエラー: {e}")

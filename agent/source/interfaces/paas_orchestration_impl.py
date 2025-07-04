@@ -390,8 +390,10 @@ class PaaSOrchestrationImpl(PaaSOrchestrationPort):
         
         try:
             # 既存文書の取得
-            stats = self._existing_system.get_system_statistics()
-            total_docs = stats.get('total_documents', 0)
+            datasets = self._existing_system.dataset_repo.find_all()
+            papers = self._existing_system.paper_repo.find_all()
+            posters = self._existing_system.poster_repo.find_all()
+            total_docs = len(datasets) + len(papers) + len(posters)
             
             result = {
                 'migration_type': 'vector_indexing',

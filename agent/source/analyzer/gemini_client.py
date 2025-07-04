@@ -6,7 +6,7 @@ import time
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
-from config import GEMINI_API_KEY, GEMINI_MODEL
+from tools.config import GEMINI_API_KEY, GEMINI_MODEL
 
 logger = logging.getLogger(__name__)
 

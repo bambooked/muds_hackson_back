@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import List, Optional
 import logging
 
-from config import DATA_DIR, SUPPORTED_EXTENSIONS, MAX_FILE_SIZE_BYTES
+from tools.config import DATA_DIR, SUPPORTED_EXTENSIONS, MAX_FILE_SIZE_BYTES
 from ..database.models import File
 
 logger = logging.getLogger(__name__)

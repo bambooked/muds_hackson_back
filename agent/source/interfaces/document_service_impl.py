@@ -379,7 +379,7 @@ class DocumentServiceImpl(DocumentServicePort):
                 if force_reanalyze or not dataset.summary:
                     await asyncio.to_thread(
                         self._existing_ui.analyzer.analyze_dataset, 
-                        dataset.name
+                        dataset.id
                     )
                     # 解析後の最新データを取得
                     dataset = self._existing_ui.dataset_repo.find_by_id(document_id)
@@ -395,7 +395,7 @@ class DocumentServiceImpl(DocumentServicePort):
                 if force_reanalyze or not paper.abstract:
                     await asyncio.to_thread(
                         self._existing_ui.analyzer.analyze_paper, 
-                        paper.file_path
+                        paper.id
                     )
                     # 解析後の最新データを取得
                     paper = self._existing_ui.paper_repo.find_by_id(document_id)
@@ -411,7 +411,7 @@ class DocumentServiceImpl(DocumentServicePort):
                 if force_reanalyze or not poster.abstract:
                     await asyncio.to_thread(
                         self._existing_ui.analyzer.analyze_poster, 
-                        poster.file_path
+                        poster.id
                     )
                     # 解析後の最新データを取得
                     poster = self._existing_ui.poster_repo.find_by_id(document_id)
@@ -491,7 +491,7 @@ class DocumentServiceImpl(DocumentServicePort):
             
             # 権限チェック必須（削除権限）
             config = self._config_manager.load_config()
-            if config.enable_authentication and user_context:
+            if user_context:
                 if not user_context.has_permission('documents', 'delete'):
                     raise PaaSError("Permission denied: document delete access required")
             
@@ -512,6 +512,9 @@ class DocumentServiceImpl(DocumentServicePort):
             
             return success
             
+        except PaaSError:
+            # 権限エラーなどの重要なエラーは再発生させる
+            raise
         except Exception as e:
             self._logger.error(f"文書削除失敗: {e}")
             return False

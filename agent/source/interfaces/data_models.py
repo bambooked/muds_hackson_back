@@ -395,3 +395,83 @@ def create_search_result_from_existing(existing_data: Dict[str, Any], score: flo
         relevance_type='keyword',
         highlighted_content=existing_data.get('highlighted_content')
     )
+
+
+# ========================================
+# Additional Models for Unified Interface
+# ========================================
+
+@dataclass
+class SearchRequest:
+    """
+    検索リクエストを表すデータモデル
+    """
+    query: str
+    mode: SearchMode = SearchMode.HYBRID
+    max_results: int = 10
+    include_metadata: bool = True
+    filters: Dict[str, Any] = field(default_factory=dict)
+    user_context: Optional[UserContext] = None
+
+
+@dataclass
+class SearchResultCollection:
+    """
+    検索結果コレクション（複数結果をまとめる）
+    """
+    results: List[DocumentMetadata]
+    total_results: int
+    search_time_ms: int
+    mode: SearchMode
+    query: str = ""
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class DocumentIngestionRequest:
+    """
+    ドキュメント取り込みリクエスト
+    """
+    source_type: str  # 'google_drive', 'upload', 'url'
+    source_id: str    # folder_id, file_path, url
+    auto_analyze: bool = True
+    category: Optional[str] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class DocumentIngestionResult:
+    """
+    ドキュメント取り込み結果
+    """
+    job_id: str
+    status: str  # 'completed', 'failed', 'partial_failure'
+    total_files: int
+    processed_files: int
+    failed_files: int
+    processing_time_ms: int
+    errors: List[str] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class SystemStatistics:
+    """
+    システム統計情報
+    """
+    total_documents: int
+    datasets: int
+    papers: int
+    posters: int
+    total_size_mb: float
+    vector_embeddings: int = 0
+    last_updated: Optional[datetime] = None
+    feature_status: Dict[str, bool] = field(default_factory=dict)
+    performance_metrics: Dict[str, float] = field(default_factory=dict)
+
+
+class HealthStatus(Enum):
+    """システムヘルス状態"""
+    HEALTHY = "healthy"
+    DEGRADED = "degraded"
+    UNHEALTHY = "unhealthy"

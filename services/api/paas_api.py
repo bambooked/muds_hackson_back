@@ -11,7 +11,7 @@ from typing import Optional, List
 import logging
 from datetime import datetime
 
-from rag_interface import RAGInterface, DocumentMetadata, SearchResult, IngestionResult, SystemStats
+from services.rag_interface import RAGInterface, DocumentMetadata, SearchResult, IngestionResult, SystemStats
 
 # ロギング設定
 logging.basicConfig(level=logging.INFO)
