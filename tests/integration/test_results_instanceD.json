@@ -1,0 +1,97 @@
+{
+  "timestamp": "2025-07-03T22:29:39.191807",
+  "tests": {
+    "environment_setup": {
+      "status": "PASS",
+      "message": "全必要モジュールのインポート成功",
+      "timestamp": "2025-07-03T22:29:39.549365"
+    },
+    "existing_system_protection_legacy_rag": {
+      "status": "PASS",
+      "message": "既存RAGInterface動作確認: 0件の文書",
+      "timestamp": "2025-07-03T22:29:39.549691"
+    },
+    "existing_system_protection": {
+      "status": "FAIL",
+      "message": "既存システム保護テスト失敗: 'UserInterface' object has no attribute 'get_system_statistics'",
+      "timestamp": "2025-07-03T22:29:39.549744"
+    },
+    "configuration_manager_basic_config": {
+      "status": "PASS",
+      "message": "基本設定読み込み成功: development環境, 0.0.0.0:8000",
+      "timestamp": "2025-07-03T22:29:39.549819"
+    },
+    "configuration_manager_feature_flags": {
+      "status": "PASS",
+      "message": "機能フラグ確認: {'google_drive': False, 'vector_search': False, 'authentication': False, 'monitoring': False}",
+      "timestamp": "2025-07-03T22:29:39.549835"
+    },
+    "configuration_manager_validation": {
+      "status": "PASS",
+      "message": "設定検証成功",
+      "timestamp": "2025-07-03T22:29:39.549849"
+    },
+    "paas_orchestration": {
+      "status": "FAIL",
+      "message": "PaaSオーケストレーションテスト失敗: System initialization failed: Critical: Existing system initialization failed: 'UserInterface' object has no attribute 'get_system_statistics'",
+      "timestamp": "2025-07-03T22:29:39.549980"
+    },
+    "enhanced_rag_interface_status": {
+      "status": "PASS",
+      "message": "拡張機能ステータス: {'enhanced_features_available': False, 'config_loaded': True, 'google_drive_enabled': False, 'vector_search_enabled': False, 'authentication_enabled': False, 'request_count': 0, 'error_count': 0, 'last_activity': '2025-07-03T22:29:39.550104'}",
+      "timestamp": "2025-07-03T22:29:39.550196"
+    },
+    "enhanced_rag_interface_legacy_compatibility": {
+      "status": "PASS",
+      "message": "既存機能互換性確認: 0件",
+      "timestamp": "2025-07-03T22:29:39.550219"
+    },
+    "enhanced_rag_interface_search_keyword": {
+      "status": "PASS",
+      "message": "キーワード検索成功: 0件",
+      "timestamp": "2025-07-03T22:29:39.550250"
+    },
+    "enhanced_rag_interface_enhanced_stats": {
+      "status": "PASS",
+      "message": "拡張統計取得成功: 0件",
+      "timestamp": "2025-07-03T22:29:39.550271"
+    },
+    "enhanced_rag_interface_backward_compatibility": {
+      "status": "PASS",
+      "message": "後方互換性確認: 0件",
+      "timestamp": "2025-07-03T22:29:39.550377"
+    },
+    "fallback_mechanisms_search_fallback": {
+      "status": "PASS",
+      "message": "検索フォールバック成功: 0件（semantic→keyword）",
+      "timestamp": "2025-07-03T22:29:39.550505"
+    },
+    "fallback_mechanisms_ingest_fallback": {
+      "status": "PASS",
+      "message": "取り込みフォールバック成功: completed",
+      "timestamp": "2025-07-03T22:29:53.192837"
+    },
+    "integration_scenarios_legacy_only": {
+      "status": "PASS",
+      "message": "既存システム単独動作: 0件",
+      "timestamp": "2025-07-03T22:29:53.194221"
+    },
+    "integration_scenarios_data_consistency": {
+      "status": "PASS",
+      "message": "データ一貫性確認: 既存=0, 拡張=0",
+      "timestamp": "2025-07-03T22:29:53.195777"
+    },
+    "integration_scenarios_instance_readiness": {
+      "status": "PASS",
+      "message": "他Instance連携準備完了: 0機能対応",
+      "timestamp": "2025-07-03T22:29:53.195894"
+    }
+  },
+  "summary": {
+    "total_tests": 17,
+    "passed_tests": 15,
+    "failed_tests": 2,
+    "success_rate": 88.23529411764706,
+    "overall_status": "PARTIAL_SUCCESS"
+  }
+}

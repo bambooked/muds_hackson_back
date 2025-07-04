@@ -4,7 +4,15 @@ __pycache__/
 build/
 dist/
 wheels/
+data/
 *.egg-info
 
 # Virtual environments
 .venv
+.env
+.coverage
+
+
+# claude
+CLAUDE.md
+claude.md
