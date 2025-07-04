@@ -68,13 +68,15 @@ class TestFallbackMechanisms:
             vector_search=VectorSearchConfig(
                 provider='chroma',
                 embedding_model='sentence-transformers/all-MiniLM-L6-v2',
-                collection_name='test_collection',
-                dimension=384
+                collection_name='test_collection'
             ),
             auth=AuthConfig(
                 provider='google',
-                session_timeout_hours=24,
-                allowed_domains=['university.ac.jp']
+                client_id='test_client_id',
+                client_secret='test_client_secret',
+                redirect_uri='http://localhost:8000/auth/callback',
+                allowed_domains=['university.ac.jp'],
+                session_timeout_minutes=1440  # 24 hours
             )
         )
     
@@ -84,7 +86,10 @@ class TestFallbackMechanisms:
         return UserContext(
             user_id="fallback_test_user",
             email="test@university.ac.jp",
-            permissions=['read', 'write'],
+            display_name="Fallback Test User",
+            domain="university.ac.jp",
+            roles=['student'],
+            permissions={'documents': ['read', 'write']},
             session_id="fallback_session"
         )
     
@@ -261,6 +266,7 @@ class TestConfigurationManagement:
     def minimal_config(self):
         """最小限設定（新機能無効）"""
         return PaaSConfig(
+            environment='test',
             enable_google_drive=False,
             enable_vector_search=False,
             enable_authentication=False,
@@ -271,6 +277,7 @@ class TestConfigurationManagement:
     def partial_config(self):
         """部分的設定（一部機能有効）"""
         return PaaSConfig(
+            environment='test',
             enable_google_drive=True,
             enable_vector_search=False,
             enable_authentication=True,
@@ -281,7 +288,7 @@ class TestConfigurationManagement:
             ),
             auth=AuthConfig(
                 provider='google',
-                session_timeout_hours=12,
+                session_timeout_minutes=720,  # 12 hours
                 allowed_domains=['research.org']
             )
         )
@@ -307,7 +314,10 @@ class TestConfigurationManagement:
         user_context = UserContext(
             user_id="minimal_user",
             email="test@example.com",
-            permissions=['read'],
+            display_name="Minimal User",
+            domain="example.com",
+            roles=['guest'],
+            permissions={'documents': ['read']},
             session_id="minimal_session"
         )
         
@@ -365,7 +375,10 @@ class TestConfigurationManagement:
         user_context = UserContext(
             user_id="partial_user",
             email="test@research.org",
-            permissions=['read', 'write'],
+            display_name="Partial User",
+            domain="research.org",
+            roles=['student'],
+            permissions={'documents': ['read', 'write']},
             session_id="partial_session"
         )
         
@@ -620,7 +633,10 @@ class TestResilienceAndRecovery:
         user_context = UserContext(
             user_id="resilience_user",
             email="test@university.ac.jp",
-            permissions=['read'],
+            display_name="Resilience User",
+            domain="university.ac.jp",
+            roles=['student'],
+            permissions={'documents': ['read']},
             session_id="resilience_session"
         )
         
@@ -701,7 +717,10 @@ class TestResilienceAndRecovery:
         user_context = UserContext(
             user_id="recovery_user",
             email="test@university.ac.jp",
-            permissions=['read', 'write'],
+            display_name="Recovery User",
+            domain="university.ac.jp",
+            roles=['student'],
+            permissions={'documents': ['read', 'write']},
             session_id="recovery_session"
         )
         

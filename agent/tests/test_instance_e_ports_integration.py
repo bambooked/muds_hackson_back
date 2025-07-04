@@ -72,7 +72,10 @@ class TestInstanceAGoogleDrivePortIntegration:
         return UserContext(
             user_id="gdrive_user_123",
             email="test@university.ac.jp",
-            permissions=['read', 'write'],
+            display_name="Test User",
+            domain="university.ac.jp",
+            roles=['student'],
+            permissions={'documents': ['read', 'write']},
             session_id="gdrive_session_456"
         )
     
@@ -190,8 +193,7 @@ class TestInstanceBVectorSearchPortIntegration:
         return VectorSearchConfig(
             provider='chroma',
             embedding_model='sentence-transformers/all-MiniLM-L6-v2',
-            collection_name='test_collection',
-            dimension=384
+            collection_name='test_collection'
         )
     
     @pytest.fixture
@@ -345,8 +347,11 @@ class TestInstanceCAuthenticationPortIntegration:
         """Authentication設定"""
         return AuthConfig(
             provider='google',
-            session_timeout_hours=24,
-            allowed_domains=['university.ac.jp', 'research.org']
+            client_id='test_client_id',
+            client_secret='test_client_secret',
+            redirect_uri='http://localhost:8000/auth/callback',
+            allowed_domains=['university.ac.jp', 'research.org'],
+            session_timeout_minutes=1440  # 24 hours
         )
     
     @pytest.fixture
@@ -491,6 +496,7 @@ class TestInstanceDPaaSOrchestrationPortIntegration:
     def paas_config(self):
         """PaaS設定"""
         return PaaSConfig(
+            environment='test',
             enable_google_drive=True,
             enable_vector_search=True,
             enable_authentication=True,
@@ -502,13 +508,15 @@ class TestInstanceDPaaSOrchestrationPortIntegration:
             vector_search=VectorSearchConfig(
                 provider='chroma',
                 embedding_model='sentence-transformers/all-MiniLM-L6-v2',
-                collection_name='test_collection',
-                dimension=384
+                collection_name='test_collection'
             ),
             auth=AuthConfig(
                 provider='google',
-                session_timeout_hours=24,
-                allowed_domains=['university.ac.jp']
+                client_id='test_client_id',
+                client_secret='test_client_secret',
+                redirect_uri='http://localhost:8000/auth/callback',
+                allowed_domains=['university.ac.jp'],
+                session_timeout_minutes=1440  # 24 hours
             )
         )
     
@@ -675,8 +683,11 @@ class TestCrossPortIntegration:
             ),
             auth=AuthConfig(
                 provider='google',
-                session_timeout_hours=24,
-                allowed_domains=['university.ac.jp']
+                client_id='test_client_id',
+                client_secret='test_client_secret',
+                redirect_uri='http://localhost:8000/auth/callback',
+                allowed_domains=['university.ac.jp'],
+                session_timeout_minutes=1440  # 24 hours
             )
         )
         

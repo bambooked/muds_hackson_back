@@ -64,6 +64,7 @@ class TestEndToEndHackathonDemo:
     def demo_config(self):
         """ハッカソンデモ用設定"""
         return PaaSConfig(
+            environment='test',
             enable_google_drive=True,
             enable_vector_search=True,
             enable_authentication=True,
@@ -81,13 +82,15 @@ class TestEndToEndHackathonDemo:
             vector_search=VectorSearchConfig(
                 provider='chroma',
                 embedding_model='sentence-transformers/all-MiniLM-L6-v2',
-                collection_name='hackathon_demo',
-                dimension=384
+                collection_name='hackathon_demo'
             ),
             auth=AuthConfig(
                 provider='google',
-                session_timeout_hours=24,
-                allowed_domains=['university.ac.jp', 'research.org']
+                client_id='test_client_id',
+                client_secret='test_client_secret',
+                redirect_uri='http://localhost:8000/auth/callback',
+                allowed_domains=['university.ac.jp', 'research.org'],
+                session_timeout_minutes=1440  # 24 hours
             )
         )
     
@@ -142,7 +145,7 @@ class TestEndToEndHackathonDemo:
             'upload_files': [
                 {
                     'name': 'New_Research_Dataset.json',
-                    'content': b'{"experiment": "新実験データ", "results": [{"id": 1, "score": 0.95}, {"id": 2, "score": 0.87}]}',
+                    'content': '{"experiment": "新実験データ", "results": [{"id": 1, "score": 0.95}, {"id": 2, "score": 0.87}]}'.encode('utf-8'),
                     'category': 'dataset',
                     'metadata': {
                         'title': '新研究データセット',
@@ -167,7 +170,10 @@ class TestEndToEndHackathonDemo:
             'context': UserContext(
                 user_id="researcher_demo_123",
                 email="researcher@university.ac.jp",
-                permissions=['read', 'write', 'admin'],
+                display_name="Dr. Demo Researcher",
+                domain="university.ac.jp",
+                roles=['faculty', 'admin'],
+                permissions={'documents': ['read', 'write', 'admin']},
                 session_id="demo_session_456"
             )
         }

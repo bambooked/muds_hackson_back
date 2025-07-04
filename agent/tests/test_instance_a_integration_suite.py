@@ -511,7 +511,7 @@ class TestInstanceACompatibility:
             from agent.source.interfaces import data_models
             from agent.source.interfaces import input_ports
             from agent.source.interfaces import google_drive_impl
-            from agent.source.interfaces import tools.config as config_manager
+            from agent.source.interfaces import config_manager
             print("✓ 新機能全インポート成功")
         except Exception as e:
             pytest.fail(f"新機能インポート失敗: {e}")
@@ -536,7 +536,7 @@ class TestInstanceACompatibility:
         
         # 既存config.pyの値が保持されることを確認
         try:
-            import tools.config as config
+            import config
             original_values = {
                 'DATA_DIR': config.DATA_DIR,
                 'SUPPORTED_EXTENSIONS': config.SUPPORTED_EXTENSIONS,
@@ -557,7 +557,7 @@ class TestInstanceACompatibility:
         
         # 既存設定値が変更されていないことを確認
         try:
-            import tools.config as config
+            import config
             for key, original_value in original_values.items():
                 current_value = getattr(config, key)
                 assert current_value == original_value, f"既存設定{key}が変更されています"

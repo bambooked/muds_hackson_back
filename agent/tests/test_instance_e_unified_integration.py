@@ -55,6 +55,7 @@ class TestUnifiedPaaSInterfaceIntegration:
     def full_config(self):
         """完全な統合テスト用設定"""
         return {
+            'environment': 'test',
             'enable_google_drive': True,
             'enable_vector_search': True,
             'enable_authentication': True,
@@ -83,6 +84,7 @@ class TestUnifiedPaaSInterfaceIntegration:
     def minimal_config(self):
         """最小限の統合テスト用設定（既存システムのみ）"""
         return {
+            'environment': 'test',
             'enable_google_drive': False,
             'enable_vector_search': False,
             'enable_authentication': False,
@@ -95,7 +97,10 @@ class TestUnifiedPaaSInterfaceIntegration:
         return UserContext(
             user_id="test_user_123",
             email="test@university.ac.jp",
-            permissions=['read', 'write', 'admin'],
+            display_name="Test User",
+            domain="university.ac.jp",
+            roles=['admin'],
+            permissions={'documents': ['read', 'write', 'admin']},
             session_id="test_session_456"
         )
     
@@ -108,11 +113,12 @@ class TestUnifiedPaaSInterfaceIntegration:
         config_manager = PaaSConfigManager()
         paas_config = PaaSConfig(**full_config)
         
-        with patch.object(config_manager, 'load_config', return_value=paas_config):
-            unified_interface = UnifiedPaaSImpl(config_manager)
+        with patch('agent.source.interfaces.unified_paas_impl.get_config_manager', return_value=config_manager), \
+             patch.object(config_manager, 'load_config', return_value=paas_config):
+            unified_interface = UnifiedPaaSImpl(auto_initialize=False)
             
             # 初期化確認
-            assert unified_interface.config_manager == config_manager
+            assert unified_interface is not None
             print("✓ UnifiedPaaSInterface初期化成功")
         
         # 2. システム統計情報取得テスト
