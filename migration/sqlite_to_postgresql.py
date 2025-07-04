@@ -26,7 +26,8 @@ class DatabaseMigrator:
     """SQLite to PostgreSQL migration handler"""
     
     def __init__(self, sqlite_path: str = None, postgresql_url: str = None):
-        self.sqlite_path = sqlite_path or os.getenv('SQLITE_PATH', 'agent/database/research_data.db')
+        from tools.config import DATABASE_PATH
+        self.sqlite_path = sqlite_path or os.getenv('SQLITE_PATH', str(DATABASE_PATH))
         self.postgresql_url = postgresql_url or os.getenv('DATABASE_URL', 'postgresql://paas:password@localhost:5432/research_paas')
         
         self.logger = logging.getLogger(__name__)
