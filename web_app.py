@@ -29,6 +29,7 @@ from agent.source.database.new_repository import DatasetRepository, PaperReposit
 from agent.source.database.new_models import Dataset, Paper, Poster
 from agent.source.advisor.enhanced_research_advisor import EnhancedResearchAdvisor
 from agent.source.advisor.dataset_advisor import DatasetAdvisor
+from agent.source.integrations.looker_export import LookerDataExporter
 
 # ログ設定
 logging.basicConfig(level=logging.INFO)
@@ -52,6 +53,7 @@ google_drive = GoogleDriveIntegration()
 auth_manager = AuthenticationManager()
 enhanced_advisor = EnhancedResearchAdvisor()
 dataset_advisor = DatasetAdvisor()
+looker_exporter = LookerDataExporter(google_drive)
 
 # リポジトリ
 dataset_repo = DatasetRepository()
@@ -86,6 +88,17 @@ class ConsultationResponse(BaseModel):
     related_documents: List[Dict[str, Any]] = []
     relevant_datasets: List[Dict[str, Any]] = []
     next_actions: List[str] = []
+
+class LookerExportRequest(BaseModel):
+    """Looker Studio用エクスポートリクエスト"""
+    export_type: str = "summary"  # Phase 1では"summary"のみ
+
+class LookerExportResponse(BaseModel):
+    """Looker Studio用エクスポートレスポンス"""
+    success: bool
+    message: str
+    file_id: Optional[str] = None
+    stats: Optional[Dict[str, Any]] = None
 
 # データベース初期化
 @app.on_event("startup")
@@ -540,6 +553,59 @@ async def google_drive_status():
     except Exception as e:
         logger.error(f"Google Drive状態取得エラー: {e}")
         return {"enabled": True, "error": str(e)}
+
+@app.post("/api/looker-studio/export", response_model=LookerExportResponse)
+async def export_for_looker_studio(request: LookerExportRequest):
+    """Looker Studio用データをGoogle Driveにエクスポート"""
+    try:
+        if request.export_type != "summary":
+            return LookerExportResponse(
+                success=False,
+                message="Phase 1ではsummaryエクスポートのみ対応しています"
+            )
+        
+        # エクスポート実行
+        result = await looker_exporter.export_to_drive()
+        
+        return LookerExportResponse(
+            success=result['success'],
+            message=result['message'],
+            file_id=result.get('file_id'),
+            stats=result.get('stats')
+        )
+        
+    except Exception as e:
+        logger.error(f"Looker export error: {e}")
+        return LookerExportResponse(
+            success=False,
+            message=f"エクスポートエラー: {str(e)}"
+        )
+
+@app.get("/api/looker-studio/status")
+async def get_looker_export_status():
+    """Looker Studioエクスポートの状態を確認"""
+    try:
+        # Google Drive連携状態を確認
+        gdrive_enabled = google_drive.is_enabled() if google_drive else False
+        
+        # 最新の統計情報を取得
+        stats = looker_exporter.collect_summary_statistics()
+        
+        return {
+            'google_drive_enabled': gdrive_enabled,
+            'export_available': gdrive_enabled,
+            'last_stats': stats,
+            'dataset_folder': 'dataset',
+            'export_format': 'CSV'
+        }
+        
+    except Exception as e:
+        logger.error(f"Status check error: {e}")
+        return {
+            'google_drive_enabled': False,
+            'export_available': False,
+            'error': str(e)
+        }
 
 if __name__ == "__main__":
     import uvicorn
