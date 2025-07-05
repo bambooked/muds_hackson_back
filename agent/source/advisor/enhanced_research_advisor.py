@@ -30,6 +30,28 @@ class EnhancedResearchAdvisor:
         # 会話履歴管理
         self.conversation_history: List[Dict[str, Any]] = []
         
+    def research_consultation(self, user_query: str, consultation_type: str = "general") -> Dict[str, Any]:
+        """Web API用の研究相談メソッド"""
+        logger.info(f"研究相談開始: {user_query} (タイプ: {consultation_type})")
+        
+        # 相談タイプに応じて処理を分岐
+        if consultation_type == "database":
+            return self._handle_database_query(user_query)
+        elif consultation_type == "planning":
+            return self._handle_planning_query(user_query)
+        else:
+            return self._handle_general_query(user_query)
+    
+    def start_database_consultation(self, user_query: str) -> Dict[str, Any]:
+        """データベース検索・相談を開始"""
+        logger.info(f"データベース検索・相談開始: {user_query}")
+        
+        # 会話履歴をクリア
+        self.conversation_history = []
+        
+        # 初期アドバイスを生成
+        return self._process_research_query(user_query, is_initial=True)
+    
     def start_research_chat(self, user_query: str) -> Dict[str, Any]:
         """研究相談チャットを開始"""
         logger.info(f"研究相談チャット開始: {user_query}")
@@ -46,6 +68,194 @@ class EnhancedResearchAdvisor:
         
         return self._process_research_query(user_query, is_initial=False)
     
+    def _handle_database_query(self, user_query: str) -> Dict[str, Any]:
+        """データベースクエリの処理 - LLMを使用した動的応答"""
+        # データベース内容を取得
+        datasets = self.dataset_repo.find_all()
+        papers = self.paper_repo.find_all()
+        posters = self.poster_repo.find_all()
+        
+        # データベース情報をLLM用のコンテキストとして構築
+        db_context = self._build_database_context(datasets, papers, posters)
+        
+        # LLM用プロンプトを構築
+        prompt = self._build_database_query_prompt(user_query, db_context)
+        
+        # LLMで応答を生成
+        try:
+            advice = self.gemini_client.generate_research_advice_enhanced(prompt)
+            if not advice:
+                # LLM失敗時もDBコンテキストを含めて再試行
+                fallback_prompt = f"""データベース検索に関する質問「{user_query}」に200-400文字で簡潔に回答してください。
+
+【利用可能なデータベース内容】
+{db_context}
+
+上記の情報を活用して具体的で有用な回答を提供してください。"""
+                advice = self.gemini_client.generate_research_advice_enhanced(fallback_prompt)
+                if not advice:
+                    raise Exception("LLM response generation failed")
+        except Exception as e:
+            logger.error(f"Database query LLM error: {e}")
+            # 最後の手段でもDBコンテキストを使用
+            try:
+                minimal_prompt = f"""質問: {user_query}
+
+データベース内容:
+{db_context}
+
+上記を基に簡潔に回答してください。"""
+                advice = self.gemini_client.generate_research_advice_enhanced(minimal_prompt)
+                if not advice:
+                    raise Exception("Final LLM retry failed")
+            except:
+                advice = "申し訳ございません。現在システムの調子が悪く、適切な回答を生成できません。しばらく時間をおいて再度お試しください。"
+        
+        # データセットを辞書形式に変換（全件）
+        relevant_datasets = []
+        for ds in datasets:
+            relevant_datasets.append({
+                "dataset_id": ds.id,
+                "name": ds.name,
+                "description": ds.description or "",
+                "summary": ds.summary or "",
+                "file_count": ds.file_count,
+                "total_size": ds.total_size
+            })
+        
+        return {
+            "advice": advice,
+            "related_documents": [],
+            "relevant_datasets": relevant_datasets,
+            "next_actions": ["具体的なキーワードで検索", "データセットの詳細確認"]
+        }
+    
+    def _handle_planning_query(self, user_query: str) -> Dict[str, Any]:
+        """研究計画クエリの処理 - LLMを使用した動的応答"""
+        # データベース内容を取得
+        datasets = self.dataset_repo.find_all()
+        papers = self.paper_repo.find_all()
+        posters = self.poster_repo.find_all()
+        
+        # 研究計画用のコンテキストを構築
+        planning_context = self._build_planning_context(datasets, papers, posters)
+        
+        # LLM用プロンプトを構築
+        prompt = self._build_planning_query_prompt(user_query, planning_context)
+        
+        # LLMで応答を生成
+        try:
+            advice = self.gemini_client.generate_research_advice_enhanced(prompt)
+            if not advice:
+                # LLM失敗時もコンテキストを含めて再試行
+                fallback_prompt = f"""研究計画に関する質問「{user_query}」に300-500文字で具体的なアドバイスを提供してください。
+
+【利用可能なリソース】
+{planning_context}
+
+上記のリソースを考慮した実践的な研究計画を提案してください。"""
+                advice = self.gemini_client.generate_research_advice_enhanced(fallback_prompt)
+                if not advice:
+                    raise Exception("LLM response generation failed")
+        except Exception as e:
+            logger.error(f"Planning query LLM error: {e}")
+            # 最後の手段でもコンテキストを使用
+            try:
+                minimal_prompt = f"""研究計画の質問: {user_query}
+
+利用可能なリソース:
+{planning_context}
+
+上記を基に研究計画のアドバイスを提供してください。"""
+                advice = self.gemini_client.generate_research_advice_enhanced(minimal_prompt)
+                if not advice:
+                    raise Exception("Final LLM retry failed")
+            except:
+                advice = "申し訳ございません。現在システムの調子が悪く、適切な回答を生成できません。しばらく時間をおいて再度お試しください。"
+        
+        # 関連データセットを抽出（全件）
+        relevant_datasets = []
+        for ds in datasets:
+            relevant_datasets.append({
+                "dataset_id": ds.id,
+                "name": ds.name,
+                "description": ds.description or "",
+                "summary": ds.summary or "",
+                "file_count": ds.file_count,
+                "total_size": ds.total_size
+            })
+        
+        return {
+            "advice": advice,
+            "related_documents": [],
+            "relevant_datasets": relevant_datasets,
+            "next_actions": ["研究テーマの具体化", "先行研究調査", "データ収集計画", "手法の選定"]
+        }
+    
+    def _handle_general_query(self, user_query: str) -> Dict[str, Any]:
+        """一般的なクエリの処理 - シンプルなLLM応答"""
+        # データベース内容を取得
+        datasets = self.dataset_repo.find_all()
+        papers = self.paper_repo.find_all()
+        posters = self.poster_repo.find_all()
+        
+        # データベース情報をLLM用のコンテキストとして構築
+        db_context = self._build_database_context(datasets, papers, posters)
+        
+        # 詳細なプロンプト
+        prompt = f"""研究に関する質問に簡潔に回答してください。
+
+【質問】
+{user_query}
+
+【データベースの内容】
+{db_context}
+
+【回答の条件】
+- 150-300文字程度で簡潔に
+- 実用的で具体的な内容
+- データベース内容を活用した回答
+- 次のアクションを含める
+
+回答:"""
+        
+        # LLMで応答を生成
+        try:
+            advice = self.gemini_client.generate_research_advice_enhanced(prompt)
+            if not advice:
+                # LLM失敗時もDBコンテキストを含めて再試行
+                fallback_prompt = f"""研究に関する質問「{user_query}」に150-300文字で簡潔に回答してください。
+
+【データベース内容】
+{db_context}
+
+上記の情報を活用して実用的なアドバイスを提供してください。"""
+                advice = self.gemini_client.generate_research_advice_enhanced(fallback_prompt)
+                if not advice:
+                    raise Exception("LLM response generation failed")
+        except Exception as e:
+            logger.error(f"General query LLM error: {e}")
+            # 最後の手段でもDBコンテキストを使用
+            try:
+                minimal_prompt = f"""質問: {user_query}
+
+データベース:
+{db_context}
+
+上記を基に簡潔にアドバイスしてください。"""
+                advice = self.gemini_client.generate_research_advice_enhanced(minimal_prompt)
+                if not advice:
+                    raise Exception("Final LLM retry failed")
+            except:
+                advice = "申し訳ございません。現在システムの調子が悪く、適切な回答を生成できません。しばらく時間をおいて再度お試しください。"
+        
+        return {
+            "advice": advice,
+            "related_documents": [],
+            "relevant_datasets": [],
+            "next_actions": ["具体的なキーワードで検索", "データセットの詳細確認"]
+        }
+    
     def _process_research_query(self, query: str, is_initial: bool = False) -> Dict[str, Any]:
         """研究クエリを処理"""
         try:
@@ -58,8 +268,6 @@ class EnhancedResearchAdvisor:
             # 3. 研究アイディアの言語化支援
             idea_structuring = self._structure_research_idea(query)
             
-            # 4. 独自性評価
-            originality_assessment = self._assess_research_originality(query, similar_docs)
             
             # 5. 研究計画立案支援
             research_plan = self._generate_research_plan(query, similar_docs, relevant_datasets)
@@ -67,7 +275,7 @@ class EnhancedResearchAdvisor:
             # 6. プロンプトを構築してGemini APIで総合的なアドバイスを生成
             advice_response = self._generate_comprehensive_advice(
                 query, similar_docs, relevant_datasets, idea_structuring, 
-                originality_assessment, research_plan, is_initial
+                None, research_plan, is_initial
             )
             
             # 7. 会話履歴に追加
@@ -286,6 +494,71 @@ class EnhancedResearchAdvisor:
         
         return list(set(meaningful_keywords))  # 重複除去
     
+    def _build_database_context(self, datasets, papers, posters) -> str:
+        """データベース情報を自然な文章形式でLLMに提供"""
+        all_items = []
+        
+        # データセット情報を自然な形で追加
+        for ds in datasets:
+            size_mb = round(ds.total_size / (1024 * 1024), 1) if ds.total_size else 0
+            item_desc = f"データセット「{ds.name}」({ds.file_count}ファイル, {size_mb}MB)"
+            if ds.description and ds.description.strip():
+                item_desc += f" - {ds.description}"
+            if ds.summary and ds.summary.strip():
+                item_desc += f" 要約: {ds.summary}"
+            all_items.append(item_desc)
+        
+        # 論文情報を自然な形で追加
+        for paper in papers:
+            title = paper.title if paper.title and paper.title != paper.file_name.replace('.pdf', '') else paper.file_name
+            item_desc = f"論文「{title}」"
+            if paper.authors and paper.authors not in ['Google Drive File', '']:
+                item_desc += f"(著者: {paper.authors})"
+            if paper.abstract and paper.abstract not in ['Google Driveから取得されたファイル', '']:
+                abstract_short = paper.abstract[:100] + "..." if len(paper.abstract) > 100 else paper.abstract
+                item_desc += f" - {abstract_short}"
+            all_items.append(item_desc)
+        
+        # ポスター情報を自然な形で追加
+        for poster in posters:
+            title = poster.title if poster.title and poster.title != poster.file_name.replace('.pdf', '') else poster.file_name
+            item_desc = f"ポスター「{title}」"
+            if poster.authors and poster.authors not in ['Google Drive File', '']:
+                item_desc += f"(著者: {poster.authors})"
+            if poster.abstract and poster.abstract not in ['Google Driveから取得されたファイル', '']:
+                abstract_short = poster.abstract[:100] + "..." if len(poster.abstract) > 100 else poster.abstract
+                item_desc += f" - {abstract_short}"
+            all_items.append(item_desc)
+        
+        return "; ".join(all_items) if all_items else "データベースは空です"
+    
+    def _build_database_query_prompt(self, user_query: str, db_context: str) -> str:
+        """データベースクエリ用のLLMプロンプトを構築"""
+        return f"""研究データベースに関する質問に自然で役立つ回答をしてください。
+
+質問: {user_query}
+
+利用可能なデータベース内容: {db_context}
+
+200-400文字程度で、データベース情報を活用した具体的で実践的な回答を自然な文体で提供してください。テンプレート的な表現は避け、質問者にとって有用な洞察を含めてください。"""
+    
+    
+    def _build_planning_context(self, datasets, papers, posters) -> str:
+        """研究計画用のコンテキストを自然な形で構築"""
+        # データベースコンテキストを再利用（同じ情報を自然な形で）
+        return self._build_database_context(datasets, papers, posters)
+    
+    def _build_planning_query_prompt(self, user_query: str, planning_context: str) -> str:
+        """研究計画クエリ用のLLMプロンプトを構築"""
+        return f"""研究計画に関する質問に具体的で実践的なアドバイスを自然な文体で回答してください。
+
+研究計画の相談: {user_query}
+
+利用可能なリソース: {planning_context}
+
+300-500文字程度で、利用可能なデータセットや既存研究を考慮した実現可能な研究計画を、段階的なアプローチも含めて提案してください。テンプレート的な表現は避け、具体的で有用なアドバイスを提供してください。"""
+    
+    
     def _structure_research_idea(self, query: str) -> Dict[str, Any]:
         """研究アイディアの構造化"""
         return {
@@ -370,7 +643,7 @@ class EnhancedResearchAdvisor:
     def _generate_comprehensive_advice(self, query: str, similar_docs: List[Dict[str, Any]], 
                                      relevant_datasets: List[Dict[str, Any]], 
                                      idea_structuring: Dict[str, Any],
-                                     originality_assessment: Dict[str, Any],
+                                     originality_assessment: Optional[Dict[str, Any]],
                                      research_plan: Dict[str, Any],
                                      is_initial: bool) -> Dict[str, Any]:
         """総合的なアドバイスを生成"""
@@ -391,10 +664,19 @@ class EnhancedResearchAdvisor:
         try:
             advice_text = self.gemini_client.generate_research_advice_enhanced(prompt)
             if not advice_text:
-                advice_text = self._generate_fallback_advice(query)
+                # LLM失敗時も動的に生成
+                advice_text = self.gemini_client.generate_research_advice_enhanced(f"研究に関する質問「{query}」に具体的で実践的なアドバイスを提供してください。簡潔で有用な内容にしてください。")
+                if not advice_text:
+                    raise Exception("LLM response generation failed")
         except Exception as e:
             logger.error(f"Gemini API呼び出しエラー: {e}")
-            advice_text = self._generate_fallback_advice(query)
+            # 最後の手段として簡単なプロンプトでリトライ
+            try:
+                advice_text = self.gemini_client.generate_research_advice_enhanced(f"「{query}」について研究のアドバイスを教えてください。")
+                if not advice_text:
+                    raise Exception("Final LLM retry failed")
+            except:
+                advice_text = "申し訳ございません。現在システムの調子が悪く、適切な回答を生成できません。しばらく時間をおいて再度お試しください。"
         
         return {
             "advice": advice_text,
@@ -429,10 +711,6 @@ class EnhancedResearchAdvisor:
 【利用可能なデータセット】
 {self._format_datasets_for_prompt(relevant_datasets)}
 
-【独自性評価】
-- スコア: {originality_assessment['originality_score']:.1f}/1.0
-- 評価: {originality_assessment['assessment']}
-- 類似研究数: {originality_assessment['similar_research_count']}件
 
 【提案する研究計画フェーズ】
 {self._format_research_plan_for_prompt(research_plan)}
@@ -485,27 +763,6 @@ class EnhancedResearchAdvisor:
         
         return "\n".join(formatted)
     
-    def _generate_fallback_advice(self, query: str) -> str:
-        """フォールバックアドバイス"""
-        return f"""「{query}」に関する研究について、以下のアプローチをお勧めします：
-
-1. **文献調査の実施**
-   - 関連するキーワードでより広範囲な文献検索を行う
-   - 最新の研究動向を把握する
-
-2. **研究課題の明確化**
-   - 具体的な研究問題を定義する
-   - 研究の目的と意義を明確にする
-
-3. **手法の検討** 
-   - 研究対象と目的に適した分析手法を選択する
-   - 利用可能なデータとリソースを評価する
-
-4. **実現可能性の評価**
-   - 時間的・資源的制約を考慮した計画を立案する
-   - リスクと対策を検討する
-
-より具体的なアドバイスのために、研究の詳細や背景についてお聞かせください。"""
     
     def _suggest_next_actions(self, query: str, similar_docs: List[Dict[str, Any]], 
                             relevant_datasets: List[Dict[str, Any]]) -> List[str]:
