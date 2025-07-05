@@ -67,12 +67,50 @@ class GoogleDriveIntegration:
                 )
             elif 'installed' in creds_data or 'web' in creds_data:
                 # OAuthクライアント認証（開発用）
-                logger.warning("OAuth client credentials detected. For production, use service account credentials.")
+                logger.warning("OAuth client credentials detected. Attempting OAuth flow...")
                 
-                # 一時的にサービス無効化（OAuth フローが必要）
-                logger.info("Google Drive integration disabled. OAuth flow required for client credentials.")
-                self.enabled = False
-                return False
+                try:
+                    # OAuth フローの実装
+                    flow = InstalledAppFlow.from_client_config(
+                        creds_data, 
+                        scopes=['https://www.googleapis.com/auth/drive']
+                    )
+                    
+                    # トークンファイルパスを設定
+                    token_path = self.credentials_path.replace('.json', '_token.json')
+                    
+                    # 既存のトークンを確認
+                    creds = None
+                    if os.path.exists(token_path):
+                        try:
+                            creds = UserCredentials.from_authorized_user_file(token_path)
+                        except Exception as e:
+                            logger.warning(f"Existing token file invalid: {e}")
+                    
+                    # トークンが無効または存在しない場合は新しい認証が必要
+                    if not creds or not creds.valid:
+                        if creds and creds.expired and creds.refresh_token:
+                            creds.refresh(Request())
+                        else:
+                            # ローカル認証フローを実行
+                            flow.redirect_uri = 'http://localhost:8080'
+                            creds = flow.run_local_server(port=8080, open_browser=True)
+                        
+                        # トークンを保存
+                        with open(token_path, 'w') as token:
+                            token.write(creds.to_json())
+                        logger.info(f"OAuth token saved to {token_path}")
+                    
+                    # サービスを初期化
+                    self.service = build('drive', 'v3', credentials=creds)
+                    logger.info("Google Drive OAuth authentication successful")
+                    return True
+                    
+                except Exception as oauth_error:
+                    logger.error(f"OAuth authentication failed: {oauth_error}")
+                    logger.info("Google Drive integration disabled. Please check credentials or use service account.")
+                    self.enabled = False
+                    return False
             else:
                 logger.error("Invalid credentials file format")
                 self.enabled = False
