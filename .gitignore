@@ -13,6 +13,7 @@ data/
 .coverage
 
 
+
 # claude
 CLAUDE.md
 claude.md
@@ -25,3 +26,5 @@ google_drive_token.json
 test_google_drive_*.py
 test_integration.py
 simple_integration_test.py
+
+client_secret.json
